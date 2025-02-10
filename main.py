@@ -1,5 +1,5 @@
 from discord.ext import commands
-import discord, os
+import discord, os, webserver
 from bot_logic import encontrar
 
 intents = discord.Intents.default()
@@ -15,5 +15,6 @@ async def nombre(ctx, arg):
     avion_info = encontrar(arg)
     await ctx.send(avion_info)
 
+webserver.keep_alive()
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot.run(TOKEN)

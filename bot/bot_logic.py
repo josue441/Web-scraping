@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
-import requests
-
-lista = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','b_18a','p-26a_33','p-26b_35','p-36c','f3f-2',
+import requests, time
+#list all aircrafts in the game
+aircraft_list = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','b_18a','p-26a_33','p-26b_35','p-36c','f3f-2',
         'sb2u-2','sb2u-3','pby-5','pby-5a','f2a-1','tbf-1c','sbd-3','pbm_1','f3f-2_galer','p-26a_34','p-36c_rb',
         'p-36a_rasmussen','f2a-1_thach','b_10b','p-400','p-36g','f2a-3','p-51_a-36','b_34','p-38e','p-38g',
         'p-40e','p-40f_10','f4f-3','f4f-4','f6f-3','a-20g','b_25j_1','p-39n','p-39q_5','p-51c-10-nt','f4u-1a',
@@ -106,53 +106,100 @@ lista = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','b_18a','
         'f_16c_block_40_barak_2','f_15a_iaf','f_15i_raam','p-47d','f8f1','p-61c_1','b-17e','b-17e_late','p-38j','p-38l','p-47d-28',
         'p-47n-15','f6f-5n','pb4y-2','a6m2_zero_usa','xf5f','btd-1','p-61a_1','xp-55','pv_2d','xp-50',
         'p-63c-5_kingcobra_animal_version','bf-109f-4_usa','pbm_5a','f-82e','p-51d-30_usaaf_korea',
-        'f4u-1c','f4u-4b','a-26b_10','a-26b','b-17g','b_24d','p-51h-5_na','f_15c_baz_msip','kfir_c10_colombia']
+        'f4u-1c','f4u-4b','a-26b_10','a-26b','b-17g','b_24d','p-51h-5_na','f_15c_baz_msip','kfir_c10_colombia']#No, I didn't write this list manually, I'm not crazy, that's what programming and automation are for.
 
-LINK = "https://wiki.warthunder.com/unit/"
+LINK = "https://wiki.warthunder.com/unit/"  #Incomplete URL that is completed by adding the aircraft found in the list
 
-def encontrar(enlace):
-    #Busca un avión en la lista y obtiene su información de la web de War Thunder
-    newList2 = []
+def search(arg):
+    list_3 = [] #list of the planes found
 
-    avion = enlace.replace("_", "").replace("-", "")
+    plane = arg.replace("-", "").replace("_", "").lower()
+    list_2 = [i.replace("-", "").replace("_", "").lower() for i in aircraft_list] #list of the planes in the game
+    print(f"Searching for: {plane}")
     
-    for i in lista:
-        normalizado = i.replace("_", "").replace("-", "").lower()
-        if normalizado.startswith(avion):
-            newList2.append(i)
+    for index, i in enumerate(list_2):
+        if i.startswith(plane):
+            print(f"Found: {i}")
+            list_3.append(aircraft_list[index])
+            print(f"Found: {list_3[0]}")
+
+    if not list_3:
+        return "❌ the plane was not found."
+
+    try:
+        plane_url = f"{LINK}{list_3[0]}"
+        result = requests.get(plane_url)
+        print(f"Result: {result.status_code}. \n {plane_url}")
+        
+        if result.status_code != 200:
+            print(f"Error: {result.status_code}. \n {plane_url}")
+            if result.status_code == 404:
+                return "❌ the plane was not found."
+            elif result.status_code == 403:
+                return "⚠ Error: Access forbidden."
+            elif result.status_code == 500:
+                return "⚠ Error: Server error."
+            elif result.status_code == 202:
+                return handle_202_response(plane_url)
+            return f"⚠ Error searching for aircraft data: {result.status_code}."
+        
+        bs = BeautifulSoup(result.text, "lxml")
+        information = bs.find_all("div", "game-unit_card-info_value")
+        print(len(information))
+
+        rank = information[0].text.strip()
+        nation = information[4].text.strip()
+        unit = information[5].text.strip()
+        #operator = information[8].text.strip() The operator is sometimes the same as the nation.
+        #It's just that it changes on some planes.
+        #That's why this line is commented out, because if there's a plane that doesn't list the operator, there will be an error in the information.
+        #If you have time, try to fix it! (I need to sleep)
+
+        #For testing purposes
+        #print(f"""avion: {list_3[0]}
+        #rank: {rank}
+        #nation: {nation}
+        #unit: {unit}
+        #link: {plane_url}""") # operator: {operator}
+
+        return f"""
+        plane: {list_3[0]}
+        Rank: {rank}
+        Game Nation: {nation}
+        Main Role: {unit}
+        Link: {plane_url}
+        """ #🏳 **Operator Country:** {operator}
     
-    if not newList2:
-        return "❌ No se encontró el avión."
+    except Exception as e:
+        print(f"Error: {e}. \n {plane_url}.")
+        return f"⚠ Error searching for aircraft data: {e}."
+    
+def handle_202_response(url, interval=10, max_retries=6):
+    retries = 0
+    while retries < max_retries:
+        response = requests.get(url)
+        if response.status_code == 200:
+            print("✅ Request processed successfully.")
+        elif response.status_code != 202:
+            print(f"⚠ Error: Unexpected status code {response.status_code} after retries.")
+        time.sleep(interval)
+        retries += 1
+        print(f"Retrying... Try{retries}/{max_retries}. Status code: {response.status_code}. interval: {interval} seconds.")
+    print("⚠ Error: Max retries exceeded without successful response.")
 
-    avion_url = f"{LINK}{newList2[0]}"
-    result = requests.get(avion_url)
+# For testing purposes, you can uncomment the following line and replace 'your_plane_number' with an actual plane number
+#pregunta = 'su-34'
+#search(pregunta)
 
-    if result.status_code != 200:
-        return f"⚠ Error al obtener los datos: {result.status_code}"
+#Yes, this is an attempt to fix information errors.
+    #if rank == "II":
+    #   rank = temp[0].text.strip()
+    #   nation = temp[2].text.strip()
+    #   unit = temp[3].text.strip()
+    #    operator = temp[2].text.strip()
 
-    bs = BeautifulSoup(result.text, "lxml")
-    temp = bs.find_all("div", "game-unit_card-info_value")
-
-    rank = temp[0].text.strip() if len(temp) > 0 else "Desconocido"
-    nation = temp[4].text.strip() if len(temp) > 4 else "Desconocido"
-    unit = temp[5].text.strip() if len(temp) > 5 else "Desconocido"
-    operator = temp[6].text.strip() if len(temp) > 6 else "Desconocido"
-
-    if rank == "II":
-        rank = temp[0].text.strip()
-        nation = temp[2].text.strip()
-        unit = temp[3].text.strip()
-        operator = temp[2].text.strip()
-
-    if rank == "I" or rank == "III" or rank == "V" or rank == "IV":
-        rank = temp[0].text.strip()
-        nation = temp[2].text.strip()
-        unit = temp[3].text.strip()
-        operator = temp[2].text.strip()
-
-    return f"""✈ **Avión:** {newList2[0]}
-🔹 **Rank:** {rank}
-🌍 **Game Nation:** {nation}
-🎯 **Main Role:** {unit}
-🏳 **Operator Country:** {operator}
-🔗 **Link:** {avion_url}"""
+    #if rank == "I" or rank == "III" or rank == "V" or rank == "IV":
+    #   rank = temp[0].text.strip()
+    #   nation = temp[2].text.strip()
+    #   unit = temp[3].text.strip()
+    #   operator = temp[2].text.strip()

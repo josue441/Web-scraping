@@ -19,7 +19,7 @@ This is a Discord bot designed to provide information about aircrafts using web 
   $plane F-16
   ```
 - **Example Response**:
-  ![Example usage](\img\example_usage1.png)
+  ![Example usage](/img/example_usage1.png)
 
 ## Setup
 
@@ -77,7 +77,7 @@ BOT/
 
 ## Example
 
-![Bot Example](\img\example_usage2.png)
+![Bot Example](/img/example_usage2.png)
 
 ## Contributing
 

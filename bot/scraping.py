@@ -140,66 +140,31 @@ def search(arg):
             elif result.status_code == 500:
                 return "⚠ Error: Server error."
             elif result.status_code == 202:
-                return handle_202_response(plane_url)
+                return "intentelo mas tarde, el servidor no responde." #Try again later, the server is not responding.
             return f"⚠ Error searching for aircraft data: {result.status_code}."
         
         bs = BeautifulSoup(result.text, "lxml")
         information = bs.find_all("div", "game-unit_card-info_value")
-        print(len(information))
 
-        rank = information[0].text.strip()
-        nation = information[4].text.strip()
-        unit = information[5].text.strip()
-        #operator = information[8].text.strip() The operator is sometimes the same as the nation.
-        #It's just that it changes on some planes.
-        #That's why this line is commented out, because if there's a plane that doesn't list the operator, there will be an error in the information.
-        #If you have time, try to fix it! (I need to sleep)
+        image = bs.find("img", "game-unit_template-image")
 
-        #For testing purposes
-        #print(f"""avion: {list_3[0]}
-        #rank: {rank}
-        #nation: {nation}
-        #unit: {unit}
-        #link: {plane_url}""") # operator: {operator}
+        print(f"len: {len(information)}")
+        print(f"imagen: {image["src"]}")
 
-        return f"""
-        plane: {list_3[0]}
-        Rank: {rank}
-        Game Nation: {nation}
-        Main Role: {unit}
-        Link: {plane_url}
-        """ #🏳 **Operator Country:** {operator}
+        data = {
+            "Plane:" : list_3[0],
+            "Rank:" : information[0].text.strip(),
+            "Nation:" : information[4].text.strip(),
+            "Main Role:" : information[5].text.strip(),
+            "Link:" : plane_url,
+            "Image:" : image["src"]
+        }
+        return data
     
     except Exception as e:
         print(f"Error: {e}. \n {plane_url}.")
         return f"⚠ Error searching for aircraft data: {e}."
-    
-def handle_202_response(url, interval=10, max_retries=6):
-    retries = 0
-    while retries < max_retries:
-        response = requests.get(url)
-        if response.status_code == 200:
-            print("✅ Request processed successfully.")
-        elif response.status_code != 202:
-            print(f"⚠ Error: Unexpected status code {response.status_code} after retries.")
-        time.sleep(interval)
-        retries += 1
-        print(f"Retrying... Try{retries}/{max_retries}. Status code: {response.status_code}. interval: {interval} seconds.")
-    print("⚠ Error: Max retries exceeded without successful response.")
 
-# For testing purposes, you can uncomment the following line and replace 'your_plane_number' with an actual plane number
-#pregunta = 'su-34'
-#search(pregunta)
-
-#Yes, this is an attempt to fix information errors.
-    #if rank == "II":
-    #   rank = temp[0].text.strip()
-    #   nation = temp[2].text.strip()
-    #   unit = temp[3].text.strip()
-    #    operator = temp[2].text.strip()
-
-    #if rank == "I" or rank == "III" or rank == "V" or rank == "IV":
-    #   rank = temp[0].text.strip()
-    #   nation = temp[2].text.strip()
-    #   unit = temp[3].text.strip()
-    #   operator = temp[2].text.strip()
+#plane = "su-34"
+#print(search(plane)) #Example of how to use the function, you can remove this line if you want.
+#This is a test, so you can remove it if you want.

@@ -1,6 +1,6 @@
 import discord, os
 from discord.ext import commands
-from bot_logic import search
+from scraping import search
 from dotenv import load_dotenv
 
 import discord.ext
@@ -26,7 +26,7 @@ async def on_ready():
         channel = bot.get_channel(int(channel_id)) or await bot.fetch_channel(int(channel_id))
         await channel.send(message)
     except Exception as e:
-        print(f"Failed to send message: {e}")
+        print(f"Failed to send message: {e}")\
 
 @bot.command(name="plane")
 async def plane_info(ctx, arg: str = None):
@@ -35,30 +35,19 @@ async def plane_info(ctx, arg: str = None):
 
     data = search(arg)
 
-    if data.startswith("⚠") or data.startswith("❌"):
-        return await ctx.send(data)
-
-    lines = [line.strip() for line in data.splitlines() if line.strip()]
-
-    title = lines[0]
+    title = data["Plane:"]
+    image = data["Image:"]
 
     # Create embed
     embed = discord.Embed(title=title, color=0x1E90FF)
-
-    # Agregate all lines into a single field
-    for line in lines[1:]:
-        try:
-            parts = line.split(maxsplit=1)
-            if len(parts) == 2:
-                key, value = parts
-                embed.add_field(name=key, value=value, inline=False)
-            else:
-                embed.add_field(name="Info", value=line, inline=False)
-        except Exception as e:
-            print(f"Error processing line: {line} ({e})")
-            embed.add_field(name="Info", value=line, inline=False)
+    embed.set_image(url=image)
+    
+    for key, value in data.items():
+        if key != "Plane:":
+            embed.add_field(name=key, value=value, inline=True)
 
     await ctx.send(embed=embed)
+
 
 
 

@@ -32,8 +32,7 @@ This is a Discord bot designed to provide information about aircrafts using web 
 
 1. Clone the repository:
    ```bash
-   git clone <https://github.com/josue441/Web-scraping.git>
-   cd BOT
+   git clone https://github.com/josue441/Web-scraping.git
    ```
 
 2. Install dependencies:

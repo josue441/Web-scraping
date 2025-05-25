@@ -142,7 +142,7 @@ def search(arg):
         image = bs.find("img", "game-unit_template-image")
 
         print(f"len: {len(information)}")
-        print(f"imagen: {image["src"]}")
+        print(f"imagen: {image['src']}")
 
         data = {
             "Plane:" : list_3[0],

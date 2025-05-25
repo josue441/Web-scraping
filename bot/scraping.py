@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-import requests, time
+import requests
 #list all aircrafts in the game
 aircraft_list = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','b_18a','p-26a_33','p-26b_35','p-36c','f3f-2',
         'sb2u-2','sb2u-3','pby-5','pby-5a','f2a-1','tbf-1c','sbd-3','pbm_1','f3f-2_galer','p-26a_34','p-36c_rb',
@@ -111,17 +111,10 @@ aircraft_list = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','
 LINK = "https://wiki.warthunder.com/unit/"  #Incomplete URL that is completed by adding the aircraft found in the list
 
 def search(arg):
-    list_3 = [] #list of the planes found
-
     plane = arg.replace("-", "").replace("_", "").lower()
-    list_2 = [i.replace("-", "").replace("_", "").lower() for i in aircraft_list] #list of the planes in the game
+    list_3 = [aircraft_list[i] for i, aircraft in enumerate(aircraft_list) if aircraft.replace("-", "").replace("_", "").lower().startswith(plane)]
     print(f"Searching for: {plane}")
-    
-    for index, i in enumerate(list_2):
-        if i.startswith(plane):
-            print(f"Found: {i}")
-            list_3.append(aircraft_list[index])
-            print(f"Found: {list_3[0]}")
+    print(f"Found: {list_3}")
 
     if not list_3:
         return "❌ the plane was not found."

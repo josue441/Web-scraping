@@ -1,5 +1,6 @@
-from bs4 import BeautifulSoup
-import requests, time
+from bs4 import BeautifulSoup, SoupStrainer
+from requests.exceptions import Timeout, RequestException
+import requests
 #list all aircrafts in the game
 aircraft_list = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','b_18a','p-26a_33','p-26b_35','p-36c','f3f-2',
         'sb2u-2','sb2u-3','pby-5','pby-5a','f2a-1','tbf-1c','sbd-3','pbm_1','f3f-2_galer','p-26a_34','p-36c_rb',
@@ -111,60 +112,81 @@ aircraft_list = ['p-26a_34_m2','p-36a','bf2c_1','os2u_1','os2u_3','tbd-1_1938','
 LINK = "https://wiki.warthunder.com/unit/"  #Incomplete URL that is completed by adding the aircraft found in the list
 
 def search(arg):
-    list_3 = [] #list of the planes found
-
     plane = arg.replace("-", "").replace("_", "").lower()
-    list_2 = [i.replace("-", "").replace("_", "").lower() for i in aircraft_list] #list of the planes in the game
+    list_3 = [aircraft_list[i] for i, aircraft in enumerate(aircraft_list) if aircraft.replace("-", "").replace("_", "").lower().startswith(plane)]
     print(f"Searching for: {plane}")
+    print(f"Found: {list_3}")
+    if len(list_3) == 0:
+        return "The plane was not found."
+
+    if len(list_3) > 1:
+        return {
+            "options": list_3,
+            "message": "\n".join([f"{i+1}. {aircraft}" for i, aircraft in enumerate(list_3)])
+        }
+    if len(list_3) == 1:
+        return selected(list_3[0])
     
-    for index, i in enumerate(list_2):
-        if i.startswith(plane):
-            print(f"Found: {i}")
-            list_3.append(aircraft_list[index])
-            print(f"Found: {list_3[0]}")
-
-    if not list_3:
-        return "❌ the plane was not found."
-
     try:
-        plane_url = f"{LINK}{list_3[0]}"
-        result = requests.get(plane_url)
-        print(f"Result: {result.status_code}. \n {plane_url}")
+        # Buscar coincidencias en la lista de aviones
+        matches = [plane for plane in aircraft_list if arg.lower() in plane.lower()]
+
+        if len(matches) > 1:
+            return {
+                "options": matches,
+                "message": "\n".join([f"{i+1}. {plane}" for i, plane in enumerate(matches)])
+            }
+    except Exception as e:
+        return f"⚠ Error searching: {e}"
+
+
+def selected(arg):
+    try:
+        # Agregar timeout de 10s para la petición HTTP
+        result = requests.get(LINK + arg, timeout=10)
         
         if result.status_code != 200:
-            print(f"Error: {result.status_code}. \n {plane_url}")
+            print(f"Error: {result.status_code}. \n {LINK + arg}")
             if result.status_code == 404:
-                return "❌ the plane was not found."
+                return "El avión no se encontró."
             elif result.status_code == 403:
-                return "⚠ Error: Access forbidden."
+                return "Error: Acceso denegado."
             elif result.status_code == 500:
-                return "⚠ Error: Server error."
+                return "Error del servidor."
             elif result.status_code == 202:
-                return "intentelo mas tarde, el servidor no responde." #Try again later, the server is not responding.
-            return f"⚠ Error searching for aircraft data: {result.status_code}."
+                return "Inténtalo de nuevo más tarde, el servidor no está respondiendo."
+            return f"⚠ Error buscando datos del avión: {result.status_code}."
         
-        bs = BeautifulSoup(result.text, "lxml")
-        information = bs.find_all("div", "game-unit_card-info_value")
-
-        image = bs.find("img", "game-unit_template-image")
-
-        print(f"len: {len(information)}")
-        print(f"imagen: {image['src']}")
-
-        data = {
-            "Plane:" : list_3[0],
-            "Rank:" : information[0].text.strip(),
-            "Nation:" : information[4].text.strip(),
-            "Main Role:" : information[5].text.strip(),
-            "Link:" : plane_url,
-            "Image:" : image["src"]
-        }
-        return data
-    
+        # Agregar timeout para el análisis del HTML
+        try:
+            bs = BeautifulSoup(result.text, "lxml", parse_only=SoupStrainer("div"))
+            
+            image = bs.find("img", "game-unit_template-image")
+            Rank = bs.find("div", "game-unit_card-info_value")
+            inf = bs.find_all("div", "text-truncate")
+            
+            if not image or not Rank or not inf:
+                return "⚠ Error: No se pudieron extraer los datos del avión."
+            
+            data = {
+                "Plane:" : arg,
+                "Rank:" : Rank.text.strip(),
+                "Nation:" : inf[0].text.strip(),
+                "Main Role:" : inf[1].text.strip(),
+                "Link:" : LINK + arg,
+                "Image:" : image["src"]
+            }
+            return data
+            
+        except Exception as e:
+            return f"⚠ Error procesando los datos del avión: {e}"
+            
+    except Timeout:
+        return "⚠ Tiempo de espera agotado. El servidor no respondió a tiempo."
+    except RequestException as e:
+        return f"⚠ Error de conexión: {e}"
     except Exception as e:
-        print(f"Error: {e}. \n {plane_url}.")
-        return f"⚠ Error searching for aircraft data: {e}."
+        return f"⚠ Error inesperado: {e}"
 
-#plane = "su-34"
+#plane = "su" #Uncomment this line to test the function.
 #print(search(plane)) #Example of how to use the function, you can remove this line if you want.
-#This is a test, so you can remove it if you want.
